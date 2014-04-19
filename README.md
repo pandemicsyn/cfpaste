@@ -12,7 +12,7 @@ http://paste.ronin.io/
 Installation
 ============
 
-1. go get github.com/pandemicsyn/cfpaste
+1. go get github.com/pandemicsyn/cfpaste (also go get -u github.com/ncw/swift if you get a 400 on auth)
 2. go install github.com/pandemicsyn/cfpaste
 3. cd $GOPATH/src/github.com/pandemicsyn/cfpaste
 5. edit and source dot-swift-creds
