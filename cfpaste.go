@@ -1,28 +1,28 @@
 package main
 
 import (
-	"github.com/go-martini/martini"
-	"github.com/martini-contrib/render"
-	"github.com/martini-contrib/binding"
+	"bytes"
 	"code.google.com/p/go-uuid/uuid"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"github.com/bradfitz/gomemcache/memcache"
+	"github.com/go-martini/martini"
+	"github.com/martini-contrib/binding"
+	"github.com/martini-contrib/render"
+	"github.com/ncw/swift"
+	"log"
 	"net/http"
 	"os"
-	"log"
-	"fmt"
-	"time"
-	"bytes"
-	"errors"
 	"strings"
-	"encoding/json"
-	"github.com/ncw/swift"
-	"github.com/bradfitz/gomemcache/memcache"
+	"time"
 )
 
 type Paste struct {
-	PasteId string `json:"paste_id"`
+	PasteId       string `json:"paste_id"`
 	PasteContents string `json:"paste_contents"`
-	PasteTtl string `json:"paste_ttl"`
-	PasteType string `json:"paste_type"`
+	PasteTtl      string `json:"paste_ttl"`
+	PasteType     string `json:"paste_type"`
 }
 
 func PanicIf(err error) {
@@ -79,7 +79,7 @@ func GetHistory(ren render.Render, r *http.Request, cf *swift.Connection) {
 	}
 	PanicIf(err)
 	ren.HTML(200, "history", pastes)
-	return 
+	return
 }
 
 func GetPaste(params martini.Params, ren render.Render, r *http.Request, cf *swift.Connection, mc *memcache.Client) {
@@ -129,8 +129,8 @@ func SavePaste(paste Paste, ren render.Render, r *http.Request, cf *swift.Connec
 	PanicIf(err)
 	headers := swift.Headers{}
 	now := time.Now()
-    pasteIndex := 9999999999 - now.Unix()
-    indexKey := fmt.Sprintf("cfpaste-%d", pasteIndex)
+	pasteIndex := 9999999999 - now.Unix()
+	indexKey := fmt.Sprintf("cfpaste-%d", pasteIndex)
 	headers["x-object-meta-pastetype"] = paste.PasteType
 	headers["x-object-meta-pasteid"] = paste.PasteId
 	headers["x-object-meta-pasteindex"] = fmt.Sprintf("%d", pasteIndex)
@@ -143,8 +143,8 @@ func SavePaste(paste Paste, ren render.Render, r *http.Request, cf *swift.Connec
 	// gholt's listing index hack so that he spy on pastes
 	_, err = cf.ObjectPut("go-cfpaste", indexKey, bytes.NewBuffer([]byte("")), true, "", "application/json; charset=utf-8", headers)
 	PanicIf(err)
-    mc.Set(&memcache.Item{Key: paste.PasteId, Value: payload})
-    ren.JSON(200, map[string]interface{}{"pasteid": paste.PasteId})
+	mc.Set(&memcache.Item{Key: paste.PasteId, Value: payload})
+	ren.JSON(200, map[string]interface{}{"pasteid": paste.PasteId})
 }
 
 func main() {
@@ -162,31 +162,31 @@ func main() {
 	m := martini.Classic()
 
 	cf := swift.Connection{
-	    UserName:	username,
-	    ApiKey:   	apikey,
-	    AuthUrl:  	authurl,
-	    Region:	  	region,
-	    Internal:	internal,
+		UserName: username,
+		ApiKey:   apikey,
+		AuthUrl:  authurl,
+		Region:   region,
+		Internal: internal,
 	}
 	// Authenticate
 	err := cf.Authenticate()
 	PanicIf(err)
 	m.Map(&cf)
-	
+
 	mc := memcache.New("127.0.0.1:11211")
 	m.Map(mc)
-  	
-  	m.Use(render.Renderer())
 
-  	m.Get("/", IndexPage)
-  	m.Get("/history", GetHistory)
-  	m.Get("/:pasteid", GetPaste)
-  	m.Get("/:pasteid/:format", GetPaste)
-  	m.Post("/paste", binding.Json(Paste{}), binding.ErrorHandler, SavePaste)
+	m.Use(render.Renderer())
 
-  	// This will set the Content-Type header to "application/json; charset=UTF-8"
-  	m.Get("/api", func(r render.Render) {
-    	r.JSON(200, map[string]interface{}{"hello": "world"})
-  	})
-  	m.Run()
+	m.Get("/", IndexPage)
+	m.Get("/history", GetHistory)
+	m.Get("/:pasteid", GetPaste)
+	m.Get("/:pasteid/:format", GetPaste)
+	m.Post("/paste", binding.Json(Paste{}), binding.ErrorHandler, SavePaste)
+
+	// This will set the Content-Type header to "application/json; charset=UTF-8"
+	m.Get("/api", func(r render.Render) {
+		r.JSON(200, map[string]interface{}{"hello": "world"})
+	})
+	m.Run()
 }
