@@ -1,0 +1,6 @@
+export SWIFTLY_AUTH_URL="https://identity.api.rackspacecloud.com/v2.0"
+export SWIFTLY_AUTH_USER="yourusername"
+export SWIFTLY_AUTH_KEY="yourapikey"
+export SWIFTLY_REGION="IAD"
+export PORT=3000
+export HOST=127.0.0.1

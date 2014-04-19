@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CF Paste - Pastebin</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="//netdna.bootstrapcdn.com/bootswatch/3.0.0/flatly/bootstrap.min.css" rel="stylesheet">
+    <link href="//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.min.css" rel="stylesheet">
+    <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+      <script src="../../assets/js/html5shiv.js"></script>
+      <script src="../../assets/js/respond.min.js"></script>
+    <![endif]-->
+    <style>
+      #editor {
+          /* position: absolute; */
+          height: 480px;
+      }
+      html,
+      body {
+        height: 100%;
+        background-image:url('/birds.png');
+        background-color:#f5f5f5;
+        background-repeat: no-repeat;
+        background-attachment:fixed;
+        /*background-size:15% 15%;*/
+        background-position: 99% 1%;
+      }
+
+      /* Wrapper for page content to push down footer */
+      #wrap {
+        min-height: 100%;
+        height: auto !important;
+        height: 100%;
+        /* Negative indent footer by its height */
+        margin: 0 auto -60px;
+        /* Pad bottom by footer height */
+        padding: 0 0 60px;
+      }
+
+      /* Set the fixed height of the footer here */
+      #footer {
+        height: 60px;
+        background-color: #00000f;
+      }
+      .credit {
+        margin: 20px 0;
+      }
+    </style>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/knockout/2.3.0/knockout-min.js"></script>
+    <script>
+        var i_haz_a_404 = false;
+        function AppViewModel() {
+            var self = this;
+            self.longUrl = ko.observable('');
+            self.showProgress = ko.observable(false);
+            self.show404 = ko.observable(i_haz_a_404);
+            self.showError = ko.observable(false);
+            self.showSuccess = ko.observable(false);
+            self.results = ko.observableArray([]);
+            self.availableModes = ko.observableArray(['plain_text', 'python', 'markdown', 'diff', 'ini', 'yaml', 'sh', 'json', 'ruby', 'golang', 'r', 'javascript', 'html']);
+            self.availableTTLs = ko.observableArray(['5 Minutes', '60 Minutes', '1 Day', '7 Days', '30 Days', 'Forever']);
+            self.pasteURL = ko.observable('');
+            self.pasteContents = "";
+            self.pasteType = ko.observable('plain_text');
+            self.pasteTTL = ko.observable('7 Days');
+            self.editor = "";
+            self.edstatus = ko.computed(function() {
+                if (self.show404() == true) {
+                  return "panel panel-danger"
+                } else if (self.showError() == true) {
+                  return "panel panel-danger"
+                } else if (self.showSuccess() == true) {
+                  return "panel panel-success"
+                } else {
+                  return "panel panel-default"
+                }
+            }).extend({ notify: 'always' });;
+        };
+        function modeChanged(element) {
+            self.editor.getSession().setMode('ace/mode/' + self.pasteType())
+        };
+        function submitPaste(formElement) {
+            self.showError(false)
+            self.showProgress(true)
+            self.show404(false)
+            $.ajax({
+              type: 'POST',
+              beforeSend: function(xhr, settings) {
+                //place holder, need some csrf love 
+                xhr.setRequestHeader("X-WTF", "WTFINDEED");
+              },
+              url: '/paste',
+              contentType: "application/json; charset=utf-8",
+              data: JSON.stringify({
+                'paste_contents': self.editor.getValue(),
+                'paste_type': self.pasteType(),
+                'paste_ttl': self.pasteTTL()
+              }),
+              dataType: "json",
+            }).done(function( data ) {
+              console.log(data);
+              self.showProgress(false);
+              self.results.push(data);
+              self.pasteURL('/' + data['pasteid']);
+              self.showSuccess(true);
+            }).fail(function( jqxhr, textStatus, error ) {
+                var err = textStatus + ", " + error;
+                console.log( "Request Failed: " + err );
+                self.showProgress(false);
+                self.showError(true);
+
+            });
+        };
+    </script>
+  </head>
+  <body>
+    <!-- Wrap all page content here -->
+    <div id="wrap">
+      <!-- Begin page content -->
+      <div class="container">
+
+        <div class="row">
+          <div class="col-md-6">
+            <div class="page-header">
+              <h1>Swift Pastebin <a data-bind="attr: { href: pasteURL}"><span data-bind="text: pasteURL"></a></h1>
+            </div>
+          </div>
+          <div class="col-md-2 col-md-offset-4">
+            <i class="fa fa-star"></i>
+          </div>
+        </div>
+        <!-- <div class="row">
+          <div data-bind="attr: { class: edstatus}">
+            <div class="panel-heading">
+              <h3 class="panel-title">
+                <a data-bind="attr: { href: pasteURL}"><span data-bind="text: pasteURL"></a>&nbsp;
+              </h3>
+            </div>
+            <div class="panel-body" id="editor"></div>
+          </div>
+        </div> -->
+        <div class="row">
+          <div id="editor"></div>
+        </div>
+        <div class="row">
+          &nbsp;
+        </div>
+        <div class="row">
+          <form method="POST" data-bind="submit: submitPaste" target="/paste">
+            <!-- <input type="hidden" name="_csrf_token" value="\{\{ csrf_token() \}\}"> -->
+            <div class="col-md-2">
+                <label class="sr-only" for="ttl">TTL</label>
+                <select id="ttl" class="form-control" data-bind="options: availableTTLs, value: pasteTTL"></select>
+                </select>
+                <span class="help-block">Paste TTL</span>
+            </div>
+            <div class="col-md-2">
+              <label class="sr-only" for="mode">Mode</label>
+              <select id="mode" class="form-control" data-bind="options: availableModes, value: pasteType, event:{ change: modeChanged}"></select>
+              </select>
+              <span class="help-block">Syntax Style</span>
+            </div>
+            <div class="col-md-2">
+              <button id="save" type="submit" class="btn btn-primary btn-block">Save Paste</button>
+            </div>
+            <div class="col-md-4">
+              <div data-bind="visible: show404" class="form-group alert alert-danger">
+                No such paste.
+              </div>
+              <div class="alert alert-success" data-bind="visible: showSuccess">
+                <a class="alert-link" data-bind="attr: { href: pasteURL}"><span data-bind="text: pasteURL"></a>
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="row" data-bind="visible: !showProgress()">&nbsp;</div>
+        <div class="row">
+          <div class="col-md-6" data-bind="visible: showProgress">
+            <div class="progress progress-striped active">
+              <div class="progress-bar progress-bar-success"  role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" style="width: 100%">
+                <span class="sr-only">Storing URL</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div> <!-- /container -->
+    </div> <!-- /wrap -->
+    <div id="footer">
+      <div class="container">
+        <p class="text-muted credit"><a href="/history"><i class="fa fa-star-half-o" style="color: red"></i></a> Built with <a href="https://github.com/go-martini/martini"><i class="fa fa-glass"></i> Martini</a>. Backed by Swift. Available on <a href="//github.com/pandemicsyn/cfpaste">github <i class="fa fa-github"></i></a></p>
+      </div>
+    </div>
+
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+    <!-- <script src="//cdnjs.cloudflare.com/ajax/libs/knockout-bootstrap/0.2.1/knockout-bootstrap.min.js"></script> -->
+    <script src="//netdna.bootstrapcdn.com/bootstrap/3.0.0/js/bootstrap.min.js"></script>
+    <script src="/ace-builds/src-min-noconflict/ace.js"></script>
+    <script type=text/javascript>
+      ko.applyBindings(AppViewModel());
+      self.editor = ace.edit("editor");
+      self.editor.getSession().setMode("ace/mode/plain_text");
+      self.editor.getSession().setValue({{.PasteContents}})
+      self.editor.getSession().setMode('ace/mode/' + {{.PasteType}})
+      self.pasteURL("/{{.PasteId}}");
+      self.pasteType({{.PasteType}})
+    </script>
+
+  </body>
+</html>
