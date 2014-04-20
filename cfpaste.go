@@ -136,7 +136,7 @@ func SavePaste(paste Paste, ren render.Render, r *http.Request, cf *swift.Connec
     buf := bytes.NewBuffer(payload)
     _, err = cf.ObjectPut("go-cfpaste", paste.PasteId, buf, true, "", "application/json; charset=utf-8", headers)
     PanicIf(err)
-    // gholt's listing index hack so that he spy on pastes
+    // gholt's listing index hack so that he can spy on pastes
     _, err = cf.ObjectPut("go-cfpaste", indexKey, bytes.NewBuffer([]byte("")), true, "", "application/json; charset=utf-8", headers)
     PanicIf(err)
     mc.Set(&memcache.Item{Key: paste.PasteId, Value: payload})
@@ -164,7 +164,7 @@ func main() {
         Region:   region,
         Internal: internal,
     }
-    // Authenticate
+
     err := cf.Authenticate()
     PanicIf(err)
     m.Map(&cf)
@@ -179,10 +179,5 @@ func main() {
     m.Get("/:pasteid", GetPaste)
     m.Get("/:pasteid/:format", GetPaste)
     m.Post("/paste", binding.Json(Paste{}), binding.ErrorHandler, SavePaste)
-
-    // This will set the Content-Type header to "application/json; charset=UTF-8"
-    m.Get("/api", func(r render.Render) {
-        r.JSON(200, map[string]interface{}{"hello": "world"})
-    })
     m.Run()
 }
