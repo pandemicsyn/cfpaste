@@ -6,8 +6,7 @@ Go based Openstack Swift/Rackspace CloudFiles pastebin
 Demo
 ====
 
-http://paste.ronin.io/
-
+http://paste.ronin.io/c7dcb578
 
 Installation
 ============
