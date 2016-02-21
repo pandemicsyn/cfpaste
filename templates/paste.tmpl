@@ -201,7 +201,7 @@
       self.editor.getSession().setMode("ace/mode/plain_text");
       self.editor.getSession().setValue({{.PasteContents}})
       self.editor.getSession().setMode('ace/mode/' + {{.PasteType}})
-      self.pasteURL("/{{.PasteId}}");
+      self.pasteURL("/{{.PasteID}}");
       self.pasteType({{.PasteType}})
     </script>
 
