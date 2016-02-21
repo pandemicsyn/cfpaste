@@ -1,0 +1,17 @@
+FROM golang
+
+ADD . /go/src/github.com/pandemicsyn/cfpaste
+
+ENV SWIFTLY_AUTH_URL https://identity.api.rackspacecloud.com/v2.0
+ENV SWIFTLY_AUTH_USER yourusername
+ENV SWIFTLY_AUTH_KEY yourregion
+ENV SWIFTLY_REGION IAD
+ENV PORT 3000
+ENV HOST 0.0.0.0
+RUN go get -u github.com/pandemicsyn/cfpaste
+WORKDIR /go/src/github.com/pandemicsyn/cfpaste
+RUN go build github.com/pandemicsyn/cfpaste
+
+ENTRYPOINT /go/src/github.com/pandemicsyn/cfpaste/cfpaste
+
+EXPOSE 3000
